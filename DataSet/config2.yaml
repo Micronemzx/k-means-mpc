@@ -1,0 +1,19 @@
+server: 
+  id: 2
+  host: 127.0.0.1
+  port: 8001
+
+DataFile: 
+  name: data1
+  n: 150
+  dimision: 4
+
+BeaverTripleFile: triple2
+
+randomShareFile: randomshare2
+
+rsignShareFile: rsignshare2
+
+clusters: 3
+
+tolerance: 10

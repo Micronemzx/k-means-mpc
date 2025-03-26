@@ -35,8 +35,11 @@ public:
     ZZ decrypt(const ZZ &c);
     // 加法同态加密
     ZZ add(const ZZ &c1, const ZZ &c2);
+    PublicKey getPublicKey() const { return pubkey; }
+    void setPublicKey(const PublicKey &publicKey) { pubkey = publicKey; }
 
 private:
+    int keylen;
     PublicKey pubkey;
     PrivateKey prikey;
 };

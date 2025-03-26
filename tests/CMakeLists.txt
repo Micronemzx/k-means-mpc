@@ -1,6 +1,3 @@
-# 包含 FetchContent 模块
-include(FetchContent)
-
 # 获取 Google Test
 FetchContent_Declare(
     googletest
@@ -12,14 +9,23 @@ FetchContent_MakeAvailable(googletest)
 
 # 包含项目根目录的头文件
 include_directories(../)
+include_directories(../deps/boost_1_82_0)
 
 # 添加可执行文件，这里假设测试文件为 pailler_test.cpp
 add_executable(k_means_mpc_test pailler_test.cpp ../pailler.cpp)
 
 # 链接 Google Test 库
-target_link_libraries(k_means_mpc_test gtest_main ntl gmp m)
+link_directories(../deps/boost_1_82_0/stage/lib)
+target_link_libraries(k_means_mpc_test gtest_main ntl gmp m libboost_system.a)
 
+add_executable(nlt_test bytesfromzz.cpp)
+target_link_libraries(nlt_test ntl gmp m)
 
-# 定义测试
-# enable_testing()
-# add_test(NAME k-means-mpc-test COMMAND k-means-mpc-test)
+add_executable(sdiv_test sdiv_test.cpp)
+target_link_libraries(sdiv_test ntl gmp m mpc)
+
+add_executable(scomp_test scomp_test.cpp)
+target_link_libraries(scomp_test ntl gmp m mpc)
+
+add_executable(smink_test smink_test.cpp)
+target_link_libraries(smink_test ntl gmp m mpc)

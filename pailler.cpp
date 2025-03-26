@@ -2,6 +2,7 @@
 
 void pailler::keyGen(const uint32_t len)
 {
+    SetSeed(to_ZZ(time(NULL)));
     ZZ p, q;
     // 随机生成两个大素数p和q
     GenPrime(p, len);
