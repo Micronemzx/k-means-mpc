@@ -42,9 +42,9 @@ inline void recvInt(boost::asio::ip::tcp::socket &socket, int *data, int len)
     }
 }
 
-inline void sendZZ(boost::asio::ip::tcp::socket &sock, const ZZ &x, int maxlen = 1024)
+inline void sendZZ(boost::asio::ip::tcp::socket &sock, const ZZ &x, int maxlen = 2048)
 {
-    unsigned char buf[maxlen] = {0};
+    static unsigned char buf[5000] = {0};
     int len = NumBytes(x);
     BytesFromZZ(buf, x, len);
     int len_sign = sign(x) * len;
@@ -52,9 +52,9 @@ inline void sendZZ(boost::asio::ip::tcp::socket &sock, const ZZ &x, int maxlen =
     sendAll(sock, buf, len);
 }
 
-inline ZZ recvZZ(boost::asio::ip::tcp::socket &sock, int maxlen = 1024)
+inline ZZ recvZZ(boost::asio::ip::tcp::socket &sock, int maxlen = 2048)
 {
-    unsigned char buf[maxlen] = {0};
+    static unsigned char buf[5000] = {0};
     int len = 0;
     recvInt(sock, &len, sizeof(int));
     recvAll(sock, buf, abs(len));

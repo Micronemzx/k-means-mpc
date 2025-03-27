@@ -14,16 +14,6 @@ int main(int argc, char *argv[])
 
     server1 s1;
     s1.run();
-    // if (config->serverid == 1)
-    // {
-    //     server1 s1;
-    //     s1.run();
-    // }
-    // else
-    // {
-    //     server2 s2;
-    //     s2.run();
-    // }
     sleep(20);
     return 0;
 }

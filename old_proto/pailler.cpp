@@ -7,6 +7,11 @@ void pailler::keyGen(const uint32_t len)
     // 随机生成两个大素数p和q
     GenPrime(p, len);
     GenPrime(q, len);
+    while (GCD(p, q) != 1)
+    {
+        GenPrime(p, len);
+        GenPrime(q, len);
+    }
     // 计算模数n和g
     pubkey.n = p * q;
     // pubkey.g = RandomBnd(pubkey.n * pubkey.n);

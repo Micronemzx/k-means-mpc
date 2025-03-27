@@ -32,7 +32,7 @@ void server1::run()
     {
         boost::timer::auto_cpu_timer t;
         k_means_update();
-    } while (check());
+    } while (!check());
     output_k_means();
 }
 
@@ -169,6 +169,7 @@ bool server1::check()
     sendZZ(*sockptr, f);
     ZZ f1 = recvZZ(*sockptr);
     f = f + f1;
+    std::cout << sum << "\n";
     if (f == 1)
         return true;
     return false;

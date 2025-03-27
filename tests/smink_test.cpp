@@ -28,9 +28,10 @@ int main(int argc, char **argv)
         y = new ZZ[k];
         for (int i = 0; i < k; i++)
         {
-            RandomBits(x[i], 32);
+            RandomBits(x[i], 128);
             std::cout << x[i] << " ";
         }
+        std::cout << "\n";
         std::vector<triple> vec_tri;
         vec_tri.resize(2 * k);
         std::ifstream tripleStream("triple1");
@@ -57,8 +58,8 @@ int main(int argc, char **argv)
         other.setPublicKey(pub);
         {
             boost::timer::auto_cpu_timer t;
-            // for (int i = 0; i < 100; ++i)
-            SMink(sock, x, y, k, vec_tri, r, r_sign, 1, mycrypto, other);
+            for (int i = 0; i < 10; ++i)
+                SMink(sock, x, y, k, vec_tri, r, r_sign, 1, mycrypto, other);
         }
         // for (int i = 0; i < k; i++)
         // {
@@ -79,7 +80,7 @@ int main(int argc, char **argv)
         y = new ZZ[k];
         for (int i = 0; i < k; i++)
         {
-            RandomBits(x[i], 32);
+            RandomBits(x[i], 128);
             std::cout << x[i] << " ";
         }
         std::cout << "\n";
@@ -109,8 +110,8 @@ int main(int argc, char **argv)
         other.setPublicKey(pub);
 
         boost::timer::auto_cpu_timer t;
-        // for (int i = 0; i < 100; ++i)
-        SMink(sock, x, y, k, vec_tri, r, r_sign, 2, mycrypto, other);
+        for (int i = 0; i < 10; ++i)
+            SMink(sock, x, y, k, vec_tri, r, r_sign, 2, mycrypto, other);
     }
     return 0;
 }

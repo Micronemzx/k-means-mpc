@@ -35,7 +35,7 @@ int main(int argc, char **argv)
             tripleStream >> vec_tri[i].a >> vec_tri[i].b >> vec_tri[i].c;
         }
         boost::timer::auto_cpu_timer t;
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 500; i++)
             ZZ f = SDiv(sock, x, y, vec_tri, 1);
         // std::cout << f << std::endl;
         // std::cout << (f >> 10) << std::endl;
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
             tripleStream >> vec_tri[i].a >> vec_tri[i].b >> vec_tri[i].c;
         }
         boost::timer::auto_cpu_timer t;
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 500; i++)
             ZZ f = SDiv(sock, x, y, vec_tri, 2);
         // std::cout << f << std::endl;
         // std::cout << (f >> 10) << std::endl;

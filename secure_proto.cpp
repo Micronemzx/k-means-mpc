@@ -40,7 +40,7 @@ ZZ SDiv(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, const std:
     ZZ px = SMul(sock, x, r, t[0], serverid);
     ZZ py = SMul(sock, y, r, t[1], serverid);
     sendZZ(sock, px);
-    ZZ px_ = recvZZ(sock, 1024);
+    ZZ px_ = recvZZ(sock);
     px = px + px_;
 #ifdef TIMERECORD
     std::cout << "SDiv time: ";
@@ -59,7 +59,7 @@ ZZ SComp(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, const std
     ZZ tmp = SMul(sock, us, r, t[0], serverid);
     ZZ c = SMul(sock, r_sign, tmp, t[1], serverid);
     sendZZ(sock, c);
-    ZZ c_ = recvZZ(sock, 1024);
+    ZZ c_ = recvZZ(sock);
     c = c + c_;
     ZZ usign = sign(c) * r_sign;
 #ifdef TIMERECORD
@@ -83,7 +83,7 @@ void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const ui
         int s[k]; // 转置矩阵
         for (int i = 0; i < k; ++i)
         {
-            p[i] = recvZZ(sock, 1024);
+            p[i] = recvZZ(sock);
             s[i] = i;
         }
         for (int i = 0; i < k; ++i)
@@ -100,8 +100,8 @@ void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const ui
         ZZ v1 = y[0] - r;
         ZZ v2_ = other.add(d_[0], other.encrypt(r));
         ZZ v1_ = mycrypto.encrypt(v1);
-        sendZZ(sock, v1_, 1024);
-        sendZZ(sock, v2_, 1024);
+        sendZZ(sock, v1_);
+        sendZZ(sock, v2_);
         std::vector<triple> tmp(2);
         int id = 0, idr = 0, idrsign = 0;
         for (int i = 1; i < k; ++i)
@@ -110,25 +110,25 @@ void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const ui
             u1 = y[i] - r;
             u2_ = other.add(d_[i], other.encrypt(r));
             u1_ = mycrypto.encrypt(u1);
-            sendZZ(sock, u1_, 1024);
-            sendZZ(sock, u2_, 1024);
+            sendZZ(sock, u1_);
+            sendZZ(sock, u2_);
             tmp[0] = tri[id++];
             tmp[1] = tri[id++];
             ZZ f1 = SComp(sock, v1, u1, tmp, vec_r[idr++], vec_r_sign[idrsign++], serverid);
             // std::cout << "compare(" << v1 << "," << u1 << " " << " " << vec_r[idr] << ' ' << vec_r_sign[idrsign] << ")=" << f1 << std::endl;
-            sendZZ(sock, f1, 1024);
-            v1_ = recvZZ(sock, 1024);
+            sendZZ(sock, f1);
+            v1_ = recvZZ(sock);
             v1 = mycrypto.decrypt(v1_);
         }
         for (uint32_t i = 0; i < k; i++)
         {
             RandomBits(result[i], 128);
-            e[s[i]] = recvZZ(sock, 1024);
+            e[s[i]] = recvZZ(sock);
         }
         for (uint32_t i = 0; i < k; i++)
         {
             e[i] = other.add(e[i], other.encrypt(-result[i]));
-            sendZZ(sock, e[i], 1024);
+            sendZZ(sock, e[i]);
         }
     }
     else
@@ -138,26 +138,26 @@ void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const ui
         for (uint32_t i = 0; i < k; i++)
         {
             d_[i] = mycrypto.encrypt(x[i]);
-            sendZZ(sock, d_[i], 1024);
+            sendZZ(sock, d_[i]);
         }
         // 初始化
         int t = 0;
         ZZ u1_, u2_, u2;
-        ZZ v1_ = recvZZ(sock, 1024);
-        ZZ v2_ = recvZZ(sock, 1024);
+        ZZ v1_ = recvZZ(sock);
+        ZZ v2_ = recvZZ(sock);
         ZZ v2 = mycrypto.decrypt(v2_);
         std::vector<triple> tmp(2);
         // 迭代k-1轮求最小值
         int id = 0, idr = 0, idrsign = 0;
         for (int i = 1; i < k; ++i)
         {
-            u1_ = recvZZ(sock, 1024);
-            u2_ = recvZZ(sock, 1024);
+            u1_ = recvZZ(sock);
+            u2_ = recvZZ(sock);
             u2 = mycrypto.decrypt(u2_);
             tmp[0] = tri[id++];
             tmp[1] = tri[id++];
             ZZ f2 = SComp(sock, v2, u2, tmp, vec_r[idr++], vec_r_sign[idrsign++], serverid);
-            ZZ f1 = recvZZ(sock, 1024);
+            ZZ f1 = recvZZ(sock);
             ZZ f = f1 + f2;
             // std::cout << "compare(" << v2 << "," << u2 << ")=" << f << std::endl;
             // std::cout << "compare(" << v2 << "," << u2 << " " << " " << vec_r[idr] << ' ' << vec_r_sign[idrsign] << ")=" << f << std::endl;
@@ -168,7 +168,7 @@ void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const ui
                 RandomBits(r_, NumBits(v2) - 1);
                 v2 = v2 - r_;
                 v1_ = other.add(v1_, other.encrypt(r_));
-                sendZZ(sock, v1_, 1024);
+                sendZZ(sock, v1_);
             }
             else
             {
@@ -176,7 +176,7 @@ void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const ui
                 RandomBits(r_, NumBits(u2) - 1);
                 v2 = u2 - r_;
                 v1_ = other.add(u1_, other.encrypt(r_));
-                sendZZ(sock, v1_, 1024);
+                sendZZ(sock, v1_);
                 t = i;
             }
         }
@@ -186,12 +186,12 @@ void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const ui
         {
             e[i] = (t == i);
             e_[i] = mycrypto.encrypt(e[i]);
-            sendZZ(sock, e_[i], 1024);
+            sendZZ(sock, e_[i]);
             // std::cout << e[i] << " ";
         }
         for (uint32_t i = 0; i < k; i++)
         {
-            result[i] = recvZZ(sock, 1024);
+            result[i] = recvZZ(sock);
             result[i] = mycrypto.decrypt(result[i]);
             result[i] = result[i] - mycrypto.getPublicKey().n;
         }
