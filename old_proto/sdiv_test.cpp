@@ -22,8 +22,8 @@ int main(int argc, char **argv)
         acptr.accept(sock);
         std::cout << sock.remote_endpoint().address() << std::endl;
         ZZ x, y;
-        RandomBits(x, 128);
-        RandomBits(y, 64);
+        RandomBits(x, 64);
+        RandomBits(y, 32);
         std::cout << x << " " << y << std::endl;
         std::vector<triple> vec_tri;
         vec_tri.resize(20);
@@ -42,9 +42,9 @@ int main(int argc, char **argv)
         ZZ x_ = crypto.encrypt(x);
         ZZ y_ = crypto.encrypt(y);
         boost::timer::auto_cpu_timer t;
-        for (int i = 0; i < 100; i++)
-            ZZ f = SDiv_a(sock, x_, y_, vec_tri, crypto);
-        // std::cout << f << std::endl;
+        // for (int i = 0; i < 100; i++)
+        ZZ f = SDiv_a(sock, x_, y_, vec_tri, crypto);
+        std::cout << f << std::endl;
         // std::cout << (f >> 10) << std::endl;
     }
     else
@@ -54,8 +54,8 @@ int main(int argc, char **argv)
         ip::tcp::socket sock(io);
         sock.connect(ip::tcp::endpoint(ip::address::from_string("127.0.0.1"), 8001));
         ZZ x, y;
-        RandomBits(x, 128);
-        RandomBits(y, 64);
+        RandomBits(x, 64);
+        RandomBits(y, 32);
         std::cout << x << " " << y << std::endl;
         std::vector<triple> vec_tri;
         vec_tri.resize(20);
@@ -69,8 +69,8 @@ int main(int argc, char **argv)
         sendZZ(sock, crypto.getPublicKey().n);
 
         boost::timer::auto_cpu_timer t;
-        for (int i = 0; i < 100; i++)
-            ZZ f = SDiv_b(sock, vec_tri, crypto);
+        // for (int i = 0; i < 100; i++)
+        ZZ f = SDiv_b(sock, vec_tri, crypto);
         // std::cout << f << std::endl;
         // std::cout << (f >> 10) << std::endl;
     }

@@ -25,9 +25,9 @@ ZZ SMul(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, const trip
 #endif
     // 因为定点数放缩，所以乘法需要去小数位
     if (serverid == 1)
-        return (t.c + d * t.b + e * t.a + d * e) >> 10;
+        return (t.c + d * t.b + e * t.a + d * e);
     else
-        return (t.c + d * t.b + e * t.a) >> 10;
+        return (t.c + d * t.b + e * t.a);
 }
 
 ZZ SDiv(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, const std::vector<triple> &t, int serverid)
@@ -36,7 +36,7 @@ ZZ SDiv(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, const std:
     boost::timer::auto_cpu_timer t1;
 #endif
     ZZ r;
-    RandomBits(r, 128);
+    RandomBits(r, 64);
     ZZ px = SMul(sock, x, r, t[0], serverid);
     ZZ py = SMul(sock, y, r, t[1], serverid);
     sendZZ(sock, px);
@@ -46,7 +46,7 @@ ZZ SDiv(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, const std:
     std::cout << "SDiv time: ";
 #endif
     // 因为定点数放缩，所以除法需要加小数位
-    return (py << 10) / px;
+    return py / px;
 }
 
 ZZ SComp(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, const std::vector<triple> &t, const ZZ &r, const ZZ &r_sign, int serverid)
@@ -122,7 +122,7 @@ void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const ui
         }
         for (uint32_t i = 0; i < k; i++)
         {
-            RandomBits(result[i], 128);
+            RandomBits(result[i], 64);
             e[s[i]] = recvZZ(sock);
         }
         for (uint32_t i = 0; i < k; i++)

@@ -6,7 +6,7 @@ server:
 DataFile: 
   name: data1
   n: 150
-  dimision: 4
+  dimision: 2
 
 BeaverTripleFile: triple1
 
@@ -14,6 +14,6 @@ randomShareFile: randomshare1
 
 rsignShareFile: rsignshare1
 
-clusters: 3
+clusters: 4
 
-tolerance: 10
+tolerance: 2048

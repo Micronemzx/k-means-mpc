@@ -26,7 +26,7 @@ ZZ SMul(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, const trip
 }
 ZZ SecCom(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, std::vector<triple> &tri, int serverid)
 {
-    int l = 128;
+    int l = 64;
     if (serverid == 1)
     {
         ZZ r, r_;
@@ -250,7 +250,7 @@ void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const ui
 // x/y
 ZZ SDiv_a(boost::asio::ip::tcp::socket &sock, const ZZ &x_b, const ZZ &y_b, const std::vector<triple> &t, pailler &paler)
 {
-    int l = 128, id = 0;
+    int l = 64, id = 0;
     ZZ xa, ya;
     RandomBits(xa, l);
     RandomBits(ya, l);
@@ -296,7 +296,8 @@ ZZ SDiv_a(boost::asio::ip::tcp::socket &sock, const ZZ &x_b, const ZZ &y_b, cons
     sendZZ(sock, y1a);
     sendZZ(sock, y2a);
     ZZ o = recvZZ(sock);
-    return (p1 * 10000000000 - o * p2) / (o * a2 - a1 * 10000000000);
+    ZZ pie = power((ZZ)10, 30);
+    return (p1 * pie - o * p2) / (o * a2 - a1 * pie);
 }
 
 ZZ SDiv_b(boost::asio::ip::tcp::socket &sock, const std::vector<triple> &t, pailler &paler)
@@ -326,8 +327,9 @@ ZZ SDiv_b(boost::asio::ip::tcp::socket &sock, const std::vector<triple> &t, pail
     // std::cout << "y1=" << y1 << "\ny2=" << y2 << std::endl;
     // 未做定点数除法
     xdouble o = to_xdouble(y1) / to_xdouble(y2);
-    // std::cout << o;
-    ZZ O = to_ZZ(o * 10000000000);
+    xdouble pie = to_xdouble(power((ZZ)10, 30));
+    // std::cout << o.OutputPrecision() << std::endl;
+    ZZ O = to_ZZ(o * pie);
 
     sendZZ(sock, O);
     return O;

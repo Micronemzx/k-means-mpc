@@ -148,11 +148,13 @@ bool server::check()
     }
     std::vector<triple> tri;
     get_triple(tri, 3);
+    std::cout << "" << sum << "\n";
     ZZ f = SecCom(*sockptr, sum, tolerence, tri, serverid);
     sendZZ(*sockptr, f);
     ZZ f1 = recvZZ(*sockptr);
     f = f + f1;
-    if (f == 1)
+
+    if (f <= 0)
         return true;
     return false;
 }
@@ -176,6 +178,12 @@ void server::k_means_update()
         get_triple(tri, 4 * (k - 1));
         SMink(*sockptr, Dist[i], E[i], k, tri, serverid, crypto1, crypto2);
     }
+    for (int i = 0; i < k; ++i)
+    {
+        cnt[i] = 1;
+        for (int j = 0; j < d; ++j)
+            new_centroids[i][j] = 1;
+    }
     ZZ f, mod = crypto2.getPublicKey().n * crypto2.getPublicKey().n;
     for (int i = 0; i < k; ++i)
     {
@@ -184,7 +192,7 @@ void server::k_means_update()
             cnt[i] = cnt[i] * E[j][i] % mod;
             for (int l = 0; l < d; ++l)
             {
-                new_centroids[i][l] = new_centroids[i][j] * PowerMod(E[j][i], data[j][l], mod) % mod;
+                new_centroids[i][l] = new_centroids[i][l] * PowerMod(E[j][i], data[j][l], mod) % mod;
             }
         }
     }

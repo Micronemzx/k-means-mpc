@@ -22,8 +22,8 @@ int main(int argc, char **argv)
         acptr.accept(sock);
         std::cout << sock.remote_endpoint().address() << std::endl;
         ZZ x, y;
-        RandomBits(x, 128);
-        RandomBits(y, 128);
+        RandomBits(x, 64);
+        RandomBits(y, 64);
         std::cout << x << " " << y << std::endl;
         std::vector<triple> vec_tri;
         vec_tri.resize(20);
@@ -33,7 +33,7 @@ int main(int argc, char **argv)
             tripleStream >> vec_tri[i].a >> vec_tri[i].b >> vec_tri[i].c;
         }
         boost::timer::auto_cpu_timer t;
-        for (int i = 0; i < 1000; i++)
+        for (int i = 0; i < 500; i++)
             ZZ f = SecCom(sock, x, y, vec_tri, 1);
         // std::cout << f << std::endl;
         // std::cout << (f >> 10) << std::endl;
@@ -45,8 +45,8 @@ int main(int argc, char **argv)
         ip::tcp::socket sock(io);
         sock.connect(ip::tcp::endpoint(ip::address::from_string("127.0.0.1"), 8001));
         ZZ x, y;
-        RandomBits(x, 128);
-        RandomBits(y, 128);
+        RandomBits(x, 64);
+        RandomBits(y, 64);
         std::cout << x << " " << y << std::endl;
         std::vector<triple> vec_tri;
         vec_tri.resize(20);
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
         }
 
         boost::timer::auto_cpu_timer t;
-        for (int i = 0; i < 1000; i++)
+        for (int i = 0; i < 500; i++)
         {
             ZZ f = SecCom(sock, x, y, vec_tri, 2);
             // std::cout << (f > 0) << std::endl;

@@ -197,6 +197,12 @@ void server1::k_means_update()
         get_triple(tri, 2 * (k - 1));
         SMink(*sockptr, Dist[i], E[i], k, tri, vec_r, vec_r_sign, serverid, crypto1, crypto2);
     }
+    for (int i = 0; i < k; ++i)
+    {
+        cnt[i] = 0;
+        for (int j = 0; j < d; ++j)
+            new_centroids[i][j] = 0;
+    }
     ZZ f;
     for (int i = 0; i < k; ++i)
     {
