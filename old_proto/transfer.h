@@ -1,66 +1,62 @@
 #pragma once
-#include "boost/asio.hpp"
+#include <cryptoTools/Network/Channel.h>
+#include <cryptoTools/Network/Endpoint.h>
+#include <cryptoTools/Network/IOService.h>
 #include "NTL/ZZ.h"
 using namespace NTL;
-inline void sendAll(boost::asio::ip::tcp::socket &socket, const unsigned char *data, int len)
+using namespace osuCrypto;
+// inline void sendAll(boost::asio::ip::tcp::socket &socket, const unsigned char *data, int len)
+// {
+//     // int sent = 0, res = 0;
+//     // while (sent < len)
+//     // {
+//     //     res = socket.send(boost::asio::buffer(data + sent, len - sent));
+//     //     sent += res;
+//     // }
+//     // boost::asio::async_write(socket, boost::asio::buffer(data, len));
+// }
+
+inline void sendInt(Channel &socket, const int data, int len)
 {
-    int sent = 0, res = 0;
-    while (sent < len)
-    {
-        res = socket.send(boost::asio::buffer(data + sent, len - sent));
-        sent += res;
-    }
+    std::vector<int> buf = {data};
+    socket.asyncSend(std::move(buf));
 }
 
-inline void sendInt(boost::asio::ip::tcp::socket &socket, const int *data, int len)
+// inline void recvAll(Channel &socket, unsigned char *data, int len)
+// {
+//     int received = 0, res = 0;
+//     while (received < len)
+//     {
+//         res = socket.receive(boost::asio::buffer(data + received, len - received));
+//         received += res;
+//     }
+// }
+
+inline void recvInt(Channel &socket, int *data, int len)
 {
-    int sent = 0, res = 0;
-    while (sent < len)
-    {
-        res = socket.send(boost::asio::buffer(data + sent, len - sent));
-        sent += res;
-    }
+    std::vector<int> buf;
+    socket.recv(buf);
+    *data = buf[0];
 }
 
-inline void recvAll(boost::asio::ip::tcp::socket &socket, unsigned char *data, int len)
+inline void sendZZ(Channel &chl, const ZZ &x)
 {
-    int received = 0, res = 0;
-    while (received < len)
-    {
-        res = socket.receive(boost::asio::buffer(data + received, len - received));
-        received += res;
-    }
-}
-
-inline void recvInt(boost::asio::ip::tcp::socket &socket, int *data, int len)
-{
-    int received = 0, res = 0;
-    while (received < len)
-    {
-        res = socket.receive(boost::asio::buffer(data + received, len - received));
-        received += res;
-    }
-}
-
-inline void sendZZ(boost::asio::ip::tcp::socket &sock, const ZZ &x, int maxlen = 5000)
-{
-    static unsigned char buf[5000] = {0};
     int len = NumBytes(x);
-    BytesFromZZ(buf, x, len);
-    int len_sign = sign(x) * len;
-    sendInt(sock, &len_sign, sizeof(int));
-    sendAll(sock, buf, len);
+    std::vector<uint8_t> buf(len + 1);
+    int8_t len_sign = 1;
+    if (x < 0)
+        len_sign = -1;
+    memcpy(buf.data(), &len_sign, sizeof(signed char));
+    BytesFromZZ(buf.data() + 1, x, len);
+    chl.asyncSend(std::move(buf));
 }
 
-inline ZZ recvZZ(boost::asio::ip::tcp::socket &sock, int maxlen = 5000)
+inline void recvZZ(Channel &chl, ZZ &x)
 {
-    static unsigned char buf[5000] = {0};
-    int len = 0;
-    recvInt(sock, &len, sizeof(int));
-    recvAll(sock, buf, abs(len));
-    ZZ x;
-    ZZFromBytes(x, buf, abs(len));
-    if (len < 0)
-        x = x * (-1);
-    return x;
+    std::vector<uint8_t> buffer;
+    chl.recv(buffer);
+    int8_t len_sign;
+    memcpy(&len_sign, buffer.data(), sizeof(signed char));
+    ZZFromBytes(x, buffer.data() + 1, buffer.size() - 1);
+    x = x * len_sign;
 }

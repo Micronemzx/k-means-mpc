@@ -5,7 +5,9 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include "boost/asio.hpp"
+#include <cryptoTools/Network/Channel.h>
+#include <cryptoTools/Network/Endpoint.h>
+#include <cryptoTools/Network/IOService.h>
 #include "secure_proto.h"
 
 using namespace boost::asio;
@@ -45,5 +47,10 @@ private:
     int n, k, d, serverid;
 
     pailler crypto1, crypto2;
-    std::shared_ptr<ip::tcp::socket> sockptr;
+    // std::shared_ptr<ip::tcp::socket> sockptr;
+    IOService ios;
+    std::shared_ptr<Session> ep;
+    Channel chl;
+
+    int triple_num = 0;
 };

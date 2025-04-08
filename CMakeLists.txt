@@ -4,8 +4,8 @@ cmake_minimum_required(VERSION 3.10)
 # 设置项目名称
 project(k-means-mpc)
 # 设置C++标准
-set(CMAKE_CXX_STANDARD 17)
-
+set(CMAKE_CXX_STANDARD 20)
+# set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}  -std=c++14")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -23,12 +23,13 @@ FetchContent_Declare(
 # 使 Google Test 内容可用
 FetchContent_MakeAvailable(yaml-cpp)
 
-include_directories(./deps/boost_1_82_0)
+# include_directories(./deps/boost_1_82_0)
 
+find_package(cryptoTools REQUIRED)
 add_library(mpc STATIC pailler.cpp secure_proto.cpp)
 
 link_directories(./deps/boost_1_82_0/stage/lib)
-target_link_libraries(mpc ntl gmp m libboost_system.a libboost_timer.a libboost_chrono.a)
+target_link_libraries(mpc ntl gmp m oc::cryptoTools libboost_timer.a libboost_chrono.a)
 
 # 添加可执行文件
 add_executable(k-means-mpc main.cpp config.cpp server1.cpp)

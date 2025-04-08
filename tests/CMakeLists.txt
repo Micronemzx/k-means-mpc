@@ -15,8 +15,8 @@ include_directories(../deps/boost_1_82_0)
 add_executable(k_means_mpc_test pailler_test.cpp ../pailler.cpp)
 
 # 链接 Google Test 库
-link_directories(../deps/boost_1_82_0/stage/lib)
-target_link_libraries(k_means_mpc_test gtest_main ntl gmp m libboost_system.a)
+# link_directories(../deps/boost_1_82_0/stage/lib)
+target_link_libraries(k_means_mpc_test gtest_main oc::cryptoTools ntl gmp)
 
 add_executable(nlt_test bytesfromzz.cpp)
 target_link_libraries(nlt_test ntl gmp m)
@@ -29,3 +29,6 @@ target_link_libraries(scomp_test ntl gmp m mpc)
 
 add_executable(smink_test smink_test.cpp)
 target_link_libraries(smink_test ntl gmp m mpc)
+
+add_executable(async_test async_send_test.cpp)
+target_link_libraries(async_test ntl gmp m mpc)

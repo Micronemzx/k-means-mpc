@@ -39,5 +39,8 @@ private:
     int n, k, d, serverid;
 
     pailler crypto1, crypto2;
-    std::shared_ptr<ip::tcp::socket> sockptr;
+    // std::shared_ptr<ip::tcp::socket> sockptr;
+    IOService ios;
+    std::shared_ptr<Session> ep;
+    Channel chl;
 };

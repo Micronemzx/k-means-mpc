@@ -1,7 +1,6 @@
 #include <fstream>
 #include "pailler.h"
 #include "secure_proto.h"
-#include "boost/asio.hpp"
 #include "boost/timer/timer.hpp"
 using namespace boost::asio;
 using namespace NTL;
@@ -12,15 +11,21 @@ int main(int argc, char **argv)
         std::cout << "Usage: " << argv[0] << " 1/2" << std::endl;
         return 0;
     }
+    IOService ios;
+    Channel chl;
+    std::shared_ptr<Session> ep;
     std::string serverid = argv[1];
     if (serverid == "1")
     {
         // wait_for_connect
-        io_context io;
-        ip::tcp::acceptor acptr(io, ip::tcp::endpoint(ip::tcp::v4(), 8001));
-        ip::tcp::socket sock(io);
-        acptr.accept(sock);
-        std::cout << sock.remote_endpoint().address() << std::endl;
+        // io_context io;
+        // ip::tcp::acceptor acptr(io, ip::tcp::endpoint(ip::tcp::v4(), 8001));
+        // ip::tcp::socket sock(io);
+        // acptr.accept(sock);
+        // std::cout << sock.remote_endpoint().address() << std::endl;
+        ep = std::make_shared<Session>(ios, "127.0.0.1", 8001, SessionMode::Server);
+        chl = ep->addChannel();
+        chl.waitForConnection();
         ZZ x, y;
         RandomBits(x, 32);
         RandomBits(y, 128);
@@ -35,17 +40,24 @@ int main(int argc, char **argv)
             tripleStream >> vec_tri[i].a >> vec_tri[i].b >> vec_tri[i].c;
         }
         boost::timer::auto_cpu_timer t;
-        for (int i = 0; i < 500; i++)
-            ZZ f = SDiv(sock, x, y, vec_tri, 1);
-        // std::cout << f << std::endl;
+        ZZ f;
+        for (int i = 0; i < 1000; i++)
+            f = SDiv(chl, x, y, vec_tri, 1);
+        std::cout << f << std::endl;
         // std::cout << (f >> 10) << std::endl;
     }
     else
     {
-        // connect to server 1
-        io_context io;
-        ip::tcp::socket sock(io);
-        sock.connect(ip::tcp::endpoint(ip::address::from_string("127.0.0.1"), 8001));
+        // // connect to server 1
+        // io_context io;
+        // ip::tcp::socket sock(io);
+        // sock.connect(ip::tcp::endpoint(ip::address::from_string("127.0.0.1"), 8001));
+        ep = std::make_shared<Session>(ios, "127.0.0.1", 8001, SessionMode::Client);
+        chl = ep->addChannel();
+        chl.onConnect([](const error_code &ec)
+                      {
+            if (ec)
+                std::cout << "chl0 failed to connect: " << ec.message() << std::endl; });
         ZZ x, y;
         RandomBits(x, 32);
         RandomBits(y, 128);
@@ -59,10 +71,11 @@ int main(int argc, char **argv)
         {
             tripleStream >> vec_tri[i].a >> vec_tri[i].b >> vec_tri[i].c;
         }
+        ZZ f;
         boost::timer::auto_cpu_timer t;
-        for (int i = 0; i < 500; i++)
-            ZZ f = SDiv(sock, x, y, vec_tri, 2);
-        // std::cout << f << std::endl;
+        for (int i = 0; i < 1000; i++)
+            f = SDiv(chl, x, y, vec_tri, 2);
+        std::cout << f << std::endl;
         // std::cout << (f >> 10) << std::endl;
     }
     return 0;

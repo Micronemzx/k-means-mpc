@@ -1,8 +1,8 @@
 #include "old_proto.h"
 using namespace NTL;
 // #define TIMERECORD
-
-ZZ SMul(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, const triple &t, int serverid)
+using namespace osuCrypto;
+ZZ SMul(Channel &sock, const ZZ &x, const ZZ &y, const triple &t, int serverid)
 {
 #ifdef TIMERECORD
     boost::timer::auto_cpu_timer t1;
@@ -12,8 +12,8 @@ ZZ SMul(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, const trip
     sendZZ(sock, d);
     sendZZ(sock, e);
     ZZ d_, e_;
-    d_ = recvZZ(sock);
-    e_ = recvZZ(sock);
+    recvZZ(sock, d_);
+    recvZZ(sock, e_);
     d = d + d_;
     e = e + e_;
 #ifdef TIMERECORD
@@ -24,7 +24,7 @@ ZZ SMul(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, const trip
     else
         return (t.c + d * t.b + e * t.a);
 }
-ZZ SecCom(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, std::vector<triple> &tri, int serverid)
+ZZ SecCom(Channel &sock, const ZZ &x, const ZZ &y, std::vector<triple> &tri, int serverid)
 {
     int l = 64;
     if (serverid == 1)
@@ -44,12 +44,14 @@ ZZ SecCom(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, std::vec
         ZZ s_ = s + ua;
         sendZZ(sock, s_);
         int ld = rand() % (l - 1) + 1;
-        sendInt(sock, &ld, sizeof(int));
+        sendInt(sock, ld, sizeof(int));
         ZZ f = s - r_;
         ZZ f0 = f % ((ZZ)1 << ld);
         ZZ f1 = f - f0;
-        ZZ g0a = recvZZ(sock);
-        ZZ g1a = recvZZ(sock);
+        ZZ g0a;
+        recvZZ(sock, g0a);
+        ZZ g1a;
+        recvZZ(sock, g1a);
         ZZ w0, w1;
         RandomBits(w0, 3 * l);
         w1 = RandomBits_ZZ(3 * l) + w0 * (1ll << ld);
@@ -69,9 +71,11 @@ ZZ SecCom(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, std::vec
     else
     {
         int id = 0;
-        ZZ rb = recvZZ(sock);
+        ZZ rb;
+        recvZZ(sock, rb);
         ZZ ub = SMul(sock, rb, x - y, tri[id++], 2);
-        ZZ s_ = recvZZ(sock);
+        ZZ s_;
+        recvZZ(sock, s_);
         int ld;
         recvInt(sock, &ld, sizeof(int));
         ZZ g = s_ + ub;
@@ -86,16 +90,17 @@ ZZ SecCom(boost::asio::ip::tcp::socket &sock, const ZZ &x, const ZZ &y, std::vec
         sendZZ(sock, g0a);
         sendZZ(sock, g1a);
         ZZ w0b, w1b;
-        w0b = recvZZ(sock);
-        w1b = recvZZ(sock);
+        recvZZ(sock, w0b);
+        recvZZ(sock, w1b);
         ZZ g1b_ = SMul(sock, w1b, g1b, tri[id++], 2);
         ZZ g0b_ = SMul(sock, w0b, g0b, tri[id++], 2);
-        ZZ ha = recvZZ(sock);
+        ZZ ha;
+        recvZZ(sock, ha);
         return g1b_ + g0b_ + ha;
     }
 }
 
-void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const uint32_t k,
+void SMink(Channel &sock, const ZZ *x, ZZ *result, const uint32_t k,
            const std::vector<triple> &tri, int serverid, pailler &mycrypto, pailler &other)
 {
 #ifdef TIMERECORD
@@ -109,7 +114,7 @@ void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const ui
         int s[k]; // 转置矩阵
         for (int i = 0; i < k; ++i)
         {
-            p[i] = recvZZ(sock);
+            recvZZ(sock, p[i]);
             s[i] = i;
         }
         for (int i = 0; i < k; ++i)
@@ -145,12 +150,12 @@ void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const ui
             ZZ f1 = SecCom(sock, v1, u1, tmp, serverid);
             // std::cout << "compare(" << v1 << "," << u1 << " " << " " << vec_r[idr] << ' ' << vec_r_sign[idrsign] << ")=" << f1 << std::endl;
             sendZZ(sock, f1);
-            v1_ = recvZZ(sock);
+            recvZZ(sock, v1_);
             v1 = mycrypto.decrypt(v1_);
         }
         for (uint32_t i = 0; i < k; i++)
         {
-            e[s[i]] = recvZZ(sock);
+            recvZZ(sock, e[s[i]]);
         }
         ZZ z[k], Y[k], msg(1), mod = other.getPublicKey().n * other.getPublicKey().n;
         for (uint32_t i = 0; i < k; i++)
@@ -180,22 +185,25 @@ void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const ui
         // 初始化
         int t = 0;
         ZZ u1_, u2_, u2;
-        ZZ v1_ = recvZZ(sock);
-        ZZ v2_ = recvZZ(sock);
+        ZZ v1_;
+        recvZZ(sock, v1_);
+        ZZ v2_;
+        recvZZ(sock, v2_);
         ZZ v2 = mycrypto.decrypt(v2_);
         std::vector<triple> tmp(3);
         // 迭代k-1轮求最小值
         int id = 0, idr = 0, idrsign = 0;
         for (int i = 1; i < k; ++i)
         {
-            u1_ = recvZZ(sock);
-            u2_ = recvZZ(sock);
+            recvZZ(sock, u1_);
+            recvZZ(sock, u2_);
             u2 = mycrypto.decrypt(u2_);
             tmp[0] = tri[id++];
             tmp[1] = tri[id++];
             tmp[2] = tri[id++];
             ZZ f2 = SecCom(sock, v2, u2, tmp, serverid);
-            ZZ f1 = recvZZ(sock);
+            ZZ f1;
+            recvZZ(sock, f1);
             ZZ f = f1 + f2;
             // std::cout << "compare(" << v2 << "," << u2 << ")=" << f << std::endl;
             // std::cout << "compare(" << v2 << "," << u2 << " " << " " << vec_r[idr] << ' ' << vec_r_sign[idrsign] << ")=" << f << std::endl;
@@ -229,8 +237,8 @@ void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const ui
         ZZ y[k], zi, msg(1), mod = other.getPublicKey().n * other.getPublicKey().n;
         for (uint32_t i = 0; i < k; i++)
         {
-            y[i] = recvZZ(sock);
-            zi = recvZZ(sock);
+            recvZZ(sock, y[i]);
+            recvZZ(sock, zi);
             y[i] = mycrypto.decrypt(y[i]);
             if (y[i] == 0)
             {
@@ -248,7 +256,7 @@ void SMink(boost::asio::ip::tcp::socket &sock, const ZZ *x, ZZ *result, const ui
 }
 
 // x/y
-ZZ SDiv_a(boost::asio::ip::tcp::socket &sock, const ZZ &x_b, const ZZ &y_b, const std::vector<triple> &t, pailler &paler)
+ZZ SDiv_a(Channel &sock, const ZZ &x_b, const ZZ &y_b, const std::vector<triple> &t, pailler &paler)
 {
     int l = 64, id = 0;
     ZZ xa, ya;
@@ -295,33 +303,43 @@ ZZ SDiv_a(boost::asio::ip::tcp::socket &sock, const ZZ &x_b, const ZZ &y_b, cons
     ZZ y2a = u2a + v2a;
     sendZZ(sock, y1a);
     sendZZ(sock, y2a);
-    ZZ o = recvZZ(sock);
+    ZZ o;
+    recvZZ(sock, o);
     ZZ pie = power((ZZ)10, 30);
     return (p1 * pie - o * p2) / (o * a2 - a1 * pie);
 }
 
-ZZ SDiv_b(boost::asio::ip::tcp::socket &sock, const std::vector<triple> &t, pailler &paler)
+ZZ SDiv_b(Channel &sock, const std::vector<triple> &t, pailler &paler)
 {
     int id = 0;
-    ZZ xb = paler.decrypt(recvZZ(sock));
-    ZZ yb = paler.decrypt(recvZZ(sock));
+    ZZ xb_, yb_;
+    recvZZ(sock, xb_);
+    ZZ xb = paler.decrypt(xb_);
+    recvZZ(sock, yb_);
+    ZZ yb = paler.decrypt(yb_);
     if (xb > paler.getPublicKey().n / 2)
         xb = xb - paler.getPublicKey().n;
     if (yb > paler.getPublicKey().n / 2)
         yb = yb - paler.getPublicKey().n;
     // std::cout << xb << " " << yb << std::endl;
-    ZZ a1b = recvZZ(sock);
-    ZZ a2b = recvZZ(sock);
-    ZZ p1b = recvZZ(sock);
-    ZZ p2b = recvZZ(sock);
+    ZZ a1b;
+    recvZZ(sock, a1b);
+    ZZ a2b;
+    recvZZ(sock, a2b);
+    ZZ p1b;
+    recvZZ(sock, p1b);
+    ZZ p2b;
+    recvZZ(sock, p2b);
     ZZ u1b = SMul(sock, a1b, xb, t[id++], 2);
     // std::cout << "SMUL: a1b=" << a1b << "\nxb=" << xb << "\nu1b=" << u1b << std::endl;
     ZZ u2b = SMul(sock, a2b, xb, t[id++], 2);
     ZZ v1b = SMul(sock, p1b, yb, t[id++], 2);
     ZZ v2b = SMul(sock, p2b, yb, t[id++], 2);
     // std::cout << "u1b=" << u1b << "\nu2b=" << u2b << "\nv1b=" << v1b << "\nv2b=" << v2b << std::endl;
-    ZZ y1a = recvZZ(sock);
-    ZZ y2a = recvZZ(sock);
+    ZZ y1a;
+    recvZZ(sock, y1a);
+    ZZ y2a;
+    recvZZ(sock, y2a);
     ZZ y1 = u1b + v1b + y1a;
     ZZ y2 = u2b + v2b + y2a;
     // std::cout << "y1=" << y1 << "\ny2=" << y2 << std::endl;

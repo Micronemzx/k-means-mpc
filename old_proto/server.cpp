@@ -71,13 +71,10 @@ void server::k_means_init()
     }
     // 发送公钥
     auto pubkey = crypto1.getPublicKey();
-    unsigned char buf[1024] = {0};
-    BytesFromZZ(buf, pubkey.n, 1024);
-    sendAll(*sockptr, buf, 1024);
+    sendZZ(chl, pubkey.n);
     // 接收公钥
-    recvAll(*sockptr, buf, 1024);
     ZZ pub_n;
-    ZZFromBytes(pub_n, buf, 1024);
+    recvZZ(chl, pub_n);
     PublicKey pubkey2;
     pubkey2.n = pub_n;
     pubkey2.g = pub_n + 1;

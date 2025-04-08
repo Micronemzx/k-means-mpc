@@ -1,30 +1,28 @@
 #include "server1.h"
-#include "boost/asio.hpp"
 #include "transfer.h"
 #include "secure_proto.h"
 #include "NTL/xdouble.h"
 #include "boost/timer/timer.hpp"
-using namespace boost::asio;
+
+using namespace osuCrypto;
 
 void server1::run()
 {
     crypto1.keyGen(512);
     if (config::getInstance()->serverid == 1)
     {
-        // wait_for_connect
-        io_context io;
-        ip::tcp::acceptor acptr(io, ip::tcp::endpoint(ip::tcp::v4(), config::getInstance()->port));
-        sockptr = std::make_shared<ip::tcp::socket>(io);
-        acptr.accept(*sockptr);
-        std::cout << sockptr->remote_endpoint().address() << std::endl;
+        ep = std::make_shared<Session>(ios, "127.0.0.1", config::getInstance()->port, SessionMode::Server);
+        chl = ep->addChannel();
+        chl.waitForConnection();
     }
     else
     {
-        // connect to server 1
-        io_context io;
-        ip::tcp::socket sock(io);
-        sock.connect(ip::tcp::endpoint(ip::address::from_string(config::getInstance()->host), config::getInstance()->port));
-        sockptr = std::make_shared<ip::tcp::socket>(std::move(sock));
+        ep = std::make_shared<Session>(ios, "127.0.0.1", config::getInstance()->port, SessionMode::Client);
+        chl = ep->addChannel();
+        chl.onConnect([](const error_code &ec)
+                      {
+            if (ec)
+                std::cout << "chl0 failed to connect: " << ec.message() << std::endl; });
     }
 
     k_means_init();
@@ -32,6 +30,8 @@ void server1::run()
     {
         boost::timer::auto_cpu_timer t;
         k_means_update();
+
+        output_k_means();
     } while (!check());
     output_k_means();
 }
@@ -58,9 +58,8 @@ void server1::k_means_init()
         for (uint32_t j = 0; j < d; j++)
         {
             fin >> tmp;
-            tmp = tmp * 1024; // 小数位放大
+            tmp = tmp * 1000000; // 小数位放大
             data[i][j] = to_ZZ(tmp);
-            // fin >> data[i][j];
         }
     }
     fin.close();
@@ -85,13 +84,10 @@ void server1::k_means_init()
 
     // 发送公钥
     auto pubkey = crypto1.getPublicKey();
-    unsigned char buf[1024] = {0};
-    BytesFromZZ(buf, pubkey.n, 1024);
-    sendAll(*sockptr, buf, 1024);
+    sendZZ(chl, pubkey.n);
     // 接收公钥
-    recvAll(*sockptr, buf, 1024);
     ZZ pub_n;
-    ZZFromBytes(pub_n, buf, 1024);
+    recvZZ(chl, pub_n);
     PublicKey pubkey2;
     pubkey2.n = pub_n;
     pubkey2.g = pub_n + 1;
@@ -131,20 +127,27 @@ void server1::output_k_means()
         // 交换质心分享，恢复秘密
         for (int j = 0; j < d; ++j)
         {
-            sendZZ(*sockptr, centroids[i][j]);
+            sendZZ(chl, centroids[i][j]);
         }
-        std::cout << "centrid " << i << ":";
+        std::cout << "centrid " << i << ": ";
         xdouble tmp;
+        ZZ centroid;
         for (int j = 0; j < d; ++j)
         {
-            ZZ centroid = recvZZ(*sockptr);
+            recvZZ(chl, centroid);
             centroids[i][j] = centroids[i][j] + centroid;
             tmp = to_xdouble(centroids[i][j]);
-            tmp /= 1024;
+            tmp /= 1000000;
             std::cout << tmp << " ";
         }
+        ZZ cc;
+        sendZZ(chl, cnt[i]);
+        recvZZ(chl, cc);
+        cc += cnt[i];
+        std::cout << "node num: " << cc;
         std::cout << "\n";
     }
+    std::cout << "triple use: " << triple_num << std::endl;
 }
 
 bool server1::check()
@@ -156,7 +159,7 @@ bool server1::check()
         {
             triple t;
             get_triple(t);
-            sum += SMul(*sockptr, (centroids[i][j] - new_centroids[i][j]), (centroids[i][j] - new_centroids[i][j]), t, serverid);
+            sum += SMul(chl, (centroids[i][j] - new_centroids[i][j]), (centroids[i][j] - new_centroids[i][j]), t, serverid);
             centroids[i][j] = new_centroids[i][j];
         }
     }
@@ -165,9 +168,10 @@ bool server1::check()
     ZZ r, r_sign;
     get_random_share(r);
     get_r_sign_share(r_sign);
-    ZZ f = SComp(*sockptr, sum, tolerence, tri, r, r_sign, serverid);
-    sendZZ(*sockptr, f);
-    ZZ f1 = recvZZ(*sockptr);
+    ZZ f = SComp(chl, sum, tolerence * 1000000 * 1000000, tri, r, r_sign, serverid);
+    sendZZ(chl, f);
+    ZZ f1;
+    recvZZ(chl, f1);
     f = f + f1;
     std::cout << sum << "\n";
     if (f == 1)
@@ -176,17 +180,24 @@ bool server1::check()
 }
 void server1::k_means_update()
 {
+    // std::cout << "compute distence between node and cluster\n";
     for (int i = 0; i < n; ++i)
     {
         for (int j = 0; j < k; ++j)
         {
+            Dist[i][j] = 0;
             for (int l = 0; l < d; ++l)
             {
                 triple t;
                 get_triple(t);
-                Dist[i][j] += SMul(*sockptr, data[i][l] - centroids[j][l], data[i][l] - centroids[j][l], t, serverid);
+                Dist[i][j] += SMul(chl, data[i][l] - centroids[j][l], data[i][l] - centroids[j][l], t, serverid);
             }
+            ZZ dist;
+            sendZZ(chl, Dist[i][j]);
+            recvZZ(chl, dist);
+            // std::cout << Dist[i][j] + dist << " ";
         }
+        // std::cout << "\n";
     }
     std::vector<ZZ> vec_r, vec_r_sign;
     std::vector<triple> tri;
@@ -195,8 +206,9 @@ void server1::k_means_update()
         get_random_share(vec_r, k - 1);
         get_r_sign_share(vec_r_sign, k - 1);
         get_triple(tri, 2 * (k - 1));
-        SMink(*sockptr, Dist[i], E[i], k, tri, vec_r, vec_r_sign, serverid, crypto1, crypto2);
+        SMink(chl, Dist[i], E[i], k, tri, vec_r, vec_r_sign, serverid, crypto1, crypto2);
     }
+
     for (int i = 0; i < k; ++i)
     {
         cnt[i] = 0;
@@ -213,7 +225,7 @@ void server1::k_means_update()
             {
                 triple tri;
                 get_triple(tri);
-                f = SMul(*sockptr, data[j][l], E[j][i], tri, serverid);
+                f = SMul(chl, data[j][l], E[j][i], tri, serverid);
                 new_centroids[i][l] += f;
             }
         }
@@ -224,18 +236,20 @@ void server1::k_means_update()
         for (int j = 0; j < d; ++j)
         {
             get_triple(vec_tri, 2);
-            new_centroids[i][j] = SDiv(*sockptr, cnt[i], new_centroids[i][j], vec_tri, serverid);
+            new_centroids[i][j] = SDiv(chl, cnt[i], new_centroids[i][j], vec_tri, serverid);
         }
     }
 }
 
 void server1::get_triple(triple &t)
 {
+    triple_num++;
     tripleStream >> t.a >> t.b >> t.c;
 }
 
 void server1::get_triple(std::vector<triple> &t, int m)
 {
+    triple_num += m;
     t.resize(m);
     for (int i = 0; i < m; ++i)
     {
